@@ -338,6 +338,8 @@ def export(config, base_model=None, save_path=None):
         else:
             model = copy.deepcopy(model)
     else:
+        if "num_classes" in config['Global']:
+            config['Architecture']["Head"]['num_classes'] = config['Global']["num_classes"]
         model = build_model(config["Architecture"])
         load_model(config, model, model_type=config["Architecture"]["model_type"])
     model.eval()

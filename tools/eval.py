@@ -80,6 +80,9 @@ def main():
         else:  # base rec model
             config["Architecture"]["Head"]["out_channels"] = char_num
 
+    if "num_classes" in global_config:
+        config['Architecture']["Head"]['num_classes'] = global_config["num_classes"]
+        
     model = build_model(config["Architecture"])
     extra_input_models = [
         "SRN",

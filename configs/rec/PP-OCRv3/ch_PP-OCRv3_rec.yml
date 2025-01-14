@@ -1,14 +1,14 @@
 Global:
   debug: false
   use_gpu: true
-  epoch_num: 500
+  epoch_num: 200
   log_smooth_window: 20
   print_batch_step: 10
   save_model_dir: ./output/rec_ppocr_v3
-  save_epoch_step: 3
-  eval_batch_step: [0, 2000]
+  save_epoch_step: 20
+  eval_batch_step: [0, 40]
   cal_metric_during_train: true
-  pretrained_model:
+  pretrained_model: ../pretrain_models/ch_PP-OCRv3_rec_train/student.pdparams
   checkpoints:
   save_inference_dir:
   use_visualdl: false
@@ -80,7 +80,7 @@ Train:
     data_dir: ./train_data/
     ext_op_transform_idx: 1
     label_file_list:
-    - ./train_data/train_list.txt
+    - ./train_data/rec/train.txt
     transforms:
     - DecodeImage:
         img_mode: BGR
@@ -109,9 +109,9 @@ Train:
 Eval:
   dataset:
     name: SimpleDataSet
-    data_dir: ./train_data
+    data_dir: ./train_data/
     label_file_list:
-    - ./train_data/val_list.txt
+    - ./train_data/rec/val.txt
     transforms:
     - DecodeImage:
         img_mode: BGR

@@ -32,14 +32,14 @@ def get_bias_attr(k):
 
 
 class Head(nn.Layer):
-    def __init__(self, in_channels, kernel_list=[3, 2, 2], **kwargs):
+    def __init__(self, in_channels, name_list, num_classes=1, **kwargs):
         super(Head, self).__init__()
-
+        self.num_classes = num_classes
         self.conv1 = nn.Conv2D(
             in_channels=in_channels,
             out_channels=in_channels // 4,
-            kernel_size=kernel_list[0],
-            padding=int(kernel_list[0] // 2),
+            kernel_size=3,
+            padding=1,
             weight_attr=ParamAttr(),
             bias_attr=False,
         )
@@ -53,7 +53,7 @@ class Head(nn.Layer):
         self.conv2 = nn.Conv2DTranspose(
             in_channels=in_channels // 4,
             out_channels=in_channels // 4,
-            kernel_size=kernel_list[1],
+            kernel_size=2,
             stride=2,
             weight_attr=ParamAttr(initializer=paddle.nn.initializer.KaimingUniform()),
             bias_attr=get_bias_attr(in_channels // 4),
@@ -66,8 +66,8 @@ class Head(nn.Layer):
         )
         self.conv3 = nn.Conv2DTranspose(
             in_channels=in_channels // 4,
-            out_channels=1,
-            kernel_size=kernel_list[2],
+            out_channels=num_classes,
+            kernel_size=2,
             stride=2,
             weight_attr=ParamAttr(initializer=paddle.nn.initializer.KaimingUniform()),
             bias_attr=get_bias_attr(in_channels // 4),
@@ -85,7 +85,8 @@ class Head(nn.Layer):
         if return_f is True:
             f = x
         x = self.conv3(x)
-        x = F.sigmoid(x)
+        if self.num_classes == 1:
+            x = F.sigmoid(x)
         if return_f is True:
             return x, f
         return x
@@ -99,11 +100,24 @@ class DBHead(nn.Layer):
         params(dict): super parameters for build DB network
     """
 
-    def __init__(self, in_channels, k=50, **kwargs):
+    def __init__(self, in_channels, num_classes=1, k=50, **kwargs):
         super(DBHead, self).__init__()
         self.k = k
-        self.binarize = Head(in_channels, **kwargs)
-        self.thresh = Head(in_channels, **kwargs)
+        self.num_classes = num_classes
+        binarize_name_list = [
+            'conv2d_56', 'batch_norm_47', 'conv2d_transpose_0', 'batch_norm_48',
+            'conv2d_transpose_1', 'binarize'
+        ]
+        thresh_name_list = [
+            'conv2d_57', 'batch_norm_49', 'conv2d_transpose_2', 'batch_norm_50',
+            'conv2d_transpose_3', 'thresh'
+        ]
+        self.binarize = Head(in_channels, binarize_name_list)
+        self.thresh = Head(in_channels, thresh_name_list)
+        if num_classes != 1:
+            self.classes = Head(in_channels, binarize_name_list, num_classes=num_classes)
+        else:
+            self.classes = None
 
     def step_function(self, x, y):
         return paddle.reciprocal(1 + paddle.exp(-self.k * (x - y)))
@@ -111,13 +125,19 @@ class DBHead(nn.Layer):
     def forward(self, x, targets=None):
         shrink_maps = self.binarize(x)
         if not self.training:
-            return {"maps": shrink_maps}
+            if self.num_classes == 1:
+                return {"maps": shrink_maps}
+            else:
+                classes = paddle.argmax(self.classes(x), axis=1, keepdim=True, dtype='int32')
+                return {'maps': shrink_maps, "classes": classes}
 
         threshold_maps = self.thresh(x)
         binary_maps = self.step_function(shrink_maps, threshold_maps)
         y = paddle.concat([shrink_maps, threshold_maps, binary_maps], axis=1)
-        return {"maps": y}
-
+        if self.num_classes == 1:
+            return {'maps': y}
+        else:
+            return {'maps': y, "classes": self.classes(x)}
 
 class LocalModule(nn.Layer):
     def __init__(self, in_c, mid_c, use_distance=True):

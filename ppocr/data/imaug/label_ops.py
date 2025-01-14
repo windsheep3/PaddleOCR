@@ -45,32 +45,57 @@ class ClsLabelEncode(object):
 
 
 class DetLabelEncode(object):
-    def __init__(self, **kwargs):
-        pass
+
+    # 修改检测标签的编码处，新增了参数分类数：num_classes，重写初始化方法，以及分类标签的读取
+
+    def __init__(self, label_list, num_classes=1, **kwargs):
+        self.num_classes = num_classes
+        self.label_list = []
+        if label_list:
+            if isinstance(label_list, str):
+                with open(label_list, 'r+', encoding='utf-8') as f:
+                    for line in f.readlines():
+                        self.label_list.append(line.replace("\n", ""))
+            else:
+                self.label_list = label_list
+        else:
+            assert ' please check label_list whether it is none or config is right'
+
+        if num_classes != len(self.label_list): # 校验分类数和标签的一致性
+            assert 'label_list length is not equal to the num_classes'
 
     def __call__(self, data):
-        label = data["label"]
+        label = data['label']
         label = json.loads(label)
         nBox = len(label)
-        boxes, txts, txt_tags = [], [], []
+        boxes, txts, txt_tags, classes = [], [], [], []
         for bno in range(0, nBox):
-            box = label[bno]["points"]
-            txt = label[bno]["transcription"]
+            box = label[bno]['points']
+            txt = label[bno]['key_cls']  # 此处将kie中的参数作为分类读取
             boxes.append(box)
             txts.append(txt)
-            if txt in ["*", "###"]:
+
+            if txt in ['*', '###']:
                 txt_tags.append(True)
+                if self.num_classes > 1:
+                    classes.append(-2)
             else:
                 txt_tags.append(False)
+                if self.num_classes > 1:  # 将KIE内容的key标签作为分类标签使用
+                    classes.append(int(self.label_list.index(txt)))
+
         if len(boxes) == 0:
+
             return None
         boxes = self.expand_points_num(boxes)
         boxes = np.array(boxes, dtype=np.float32)
         txt_tags = np.array(txt_tags, dtype=np.bool_)
-
-        data["polys"] = boxes
-        data["texts"] = txts
-        data["ignore_tags"] = txt_tags
+        classes = classes
+        data['polys'] = boxes
+        data['texts'] = txts
+        data['ignore_tags'] = txt_tags
+        if self.num_classes > 1:
+            data['classes'] = classes
         return data
 
     def order_points_clockwise(self, pts):

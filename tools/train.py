@@ -136,6 +136,10 @@ def main(config, device, logger, vdl_writer, seed):
         if config["PostProcess"]["name"] == "SARLabelDecode":  # for SAR model
             config["Loss"]["ignore_index"] = char_num - 1
 
+    if "num_classes" in global_config:
+        config['Architecture']["Head"]['num_classes'] = global_config["num_classes"]
+        config['Loss']['num_classes'] = global_config["num_classes"]
+
     model = build_model(config["Architecture"])
 
     use_sync_bn = config["Global"].get("use_sync_bn", False)
