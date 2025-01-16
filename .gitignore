@@ -11,6 +11,7 @@ inference/
 inference_results/
 output/
 train_data/
+pretrain_models/
 log/
 *.DS_Store
 *.vs

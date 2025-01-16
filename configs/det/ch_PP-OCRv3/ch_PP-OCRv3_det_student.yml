@@ -10,7 +10,7 @@ Global:
   - 0
   - 400
   cal_metric_during_train: false
-  pretrained_model: ../pretrain_models/en_PP-OCRv3_det_distill_train/student.pdparams
+  pretrained_model: ./pretrain_models/en_PP-OCRv3_det_distill_train/student.pdparams
   checkpoints: null
   save_inference_dir: null
   use_visualdl: false
@@ -19,7 +19,7 @@ Global:
   distributed: true
 
   label_list: ./train_data/det/label_list.txt # 新增一个分类文件
-  num_classes: 5    # 新增一个分类数量
+  num_classes: 4    # 新增一个分类数量
 
 Architecture:
   model_type: det
