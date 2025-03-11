@@ -77,6 +77,9 @@ from PyQt5.QtWidgets import (
 __dir__ = os.path.dirname(__file__)
 sys.path.append(os.path.join(__dir__, ""))
 
+parent_dir = os.path.dirname(__dir__)  # 获取父目录
+sys.path.append(parent_dir)  # 将父目录添加到 sys.path
+
 from paddleocr import PaddleOCR, PPStructure
 import libs.resources
 from libs.constants import (

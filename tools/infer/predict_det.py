@@ -270,7 +270,10 @@ class TextDetector(object):
             preds["f_tco"] = outputs[2]
             preds["f_tvo"] = outputs[3]
         elif self.det_algorithm in ["DB", "PSE", "DB++"]:
-            preds["maps"] = outputs[0]
+            if len(outputs) > 1:
+                preds["maps"] = outputs[1]  # 如果 outputs 长度大于 2，使用 outputs[1]
+            else:
+                preds["maps"] = outputs[0]  # 否则使用 outputs[0]
         elif self.det_algorithm == "FCE":
             for i, output in enumerate(outputs):
                 preds["level_{}".format(i)] = output
